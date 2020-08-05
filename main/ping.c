@@ -10,8 +10,8 @@ pong(concord_message *msg)
         if (!strcmp("ping", msg->content)) concord_reply("pong", msg);
 }
 
-int
-main()
+void
+app_main()
 {
         concord_client *bot;
 
