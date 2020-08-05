@@ -1,5 +1,5 @@
 #include <string.h>
-#include "../concord.h"
+#include "concord.h"
 
 #define TOKEN ""
 
