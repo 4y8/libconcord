@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include "concord.h"
 
 #define TOKEN ""
@@ -14,7 +15,8 @@ void
 app_main()
 {
         concord_client *bot;
-
+        puts(concord_discord_base_url);
+        bot = NULL;
         bot = concord_new_client();
         concord_login(bot, TOKEN);
         bot->message_callback = pong;

@@ -1,2 +1,5 @@
-idf_component_register(SRCS "concord.c"
-  INCLUDE_DIRS "include")
+file(GLOB SOURCES *.c)
+
+idf_component_register(SRCS "${SOURCES}"
+  INCLUDE_DIRS "include"
+  REQUIRES esp_tls json)

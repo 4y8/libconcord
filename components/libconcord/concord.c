@@ -1,7 +1,7 @@
+/*
 #include <stdlib.h>
 #include "esp_http_client.h"
 #include "include/concord.h"
-
 static void
 concord_reply(char *content, concord_message *msg)
 {
@@ -34,3 +34,4 @@ concord_new_client()
 
         return NULL;
 }
+*/
