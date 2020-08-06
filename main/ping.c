@@ -5,7 +5,7 @@
 #define TOKEN ""
 
 void
-pong(concord_message *msg)
+pong(concord_message_t *msg)
 {
 
         if (!strcmp("ping", msg->content)) concord_reply("pong", msg);
@@ -14,7 +14,7 @@ pong(concord_message *msg)
 void
 app_main()
 {
-        concord_client *bot;
+        concord_client_t *bot;
         puts(concord_discord_base_url);
         bot = NULL;
         bot = concord_new_client();
