@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include "concord.h"
 
-#define TOKEN ""
+#define TOKEN "YOUR TOKEN"
+#define CHANNEL 0
 
 void
 pong(concord_message_t *msg)
@@ -20,5 +21,6 @@ app_main()
         bot = concord_new_client();
         concord_login(bot, TOKEN);
         bot->message_callback = pong;
+        concord_get_channel_messages(CHANNEL, bot);
         concord_free_client(bot);
 }
