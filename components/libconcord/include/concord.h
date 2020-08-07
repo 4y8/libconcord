@@ -74,50 +74,47 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		"Authorization: Bot %s\r\n"
 		"\r\n",
 		url, client->login);
-	while (1) {
-		char *tag = "ESP";
-		ESP_LOGI(tag, "%s, %s", url, client->login);
-		esp_tls_cfg_t cfg = {
-			.crt_bundle_attach = esp_crt_bundle_attach,
-		}; 
-		struct esp_tls *tls = esp_tls_conn_http_new(strdup(url), &cfg);
+	char *tag = "ESP";
+	ESP_LOGI(tag, "%s, %s", url, client->login);
+	esp_tls_cfg_t cfg = {
+		.crt_bundle_attach = esp_crt_bundle_attach,
+	}; 
+	esp_tls_t *tls = esp_tls_conn_http_new(url, &cfg);
+	if(!tls) {
 		return NULL;
-		if(!tls) {
+	} size_t written_bytes = 0;
+	
+	do {
+		ret = esp_tls_conn_write(tls,
+					 request + written_bytes,
+					 strlen(request) - written_bytes);
+		if (ret >= 0) {
+			written_bytes += ret;
+		} else if (ret != ESP_TLS_ERR_SSL_WANT_READ  && ret != ESP_TLS_ERR_SSL_WANT_WRITE) {
+			printf("esp_tls_conn_write  returned 0x%x", ret);
 			return NULL;
-		} size_t written_bytes = 0;
-
-		do {
-			ret = esp_tls_conn_write(tls,
-						 request + written_bytes,
-						 strlen(request) - written_bytes);
-			if (ret >= 0) {
-				written_bytes += ret;
-			} else if (ret != ESP_TLS_ERR_SSL_WANT_READ  && ret != ESP_TLS_ERR_SSL_WANT_WRITE) {
-				printf("esp_tls_conn_write  returned 0x%x", ret);
-				return NULL;
-			}
-		} while (written_bytes < strlen(request));
-		do
-		{
-			len = sizeof(ret_buf) - 1;
-			bzero(ret_buf, sizeof(ret_buf));
-			ret = esp_tls_conn_read(tls, (char *)ret_buf, len);
-
-			if(ret == ESP_TLS_ERR_SSL_WANT_WRITE  || ret == ESP_TLS_ERR_SSL_WANT_READ)
-				continue;
-
-			if(ret < 0) break;
-
-			if(ret == 0) break;
-
-			len = ret;
-			/* Print response directly to stdout as it is read */
-			for(int i = 0; i < len; i++) {
-				putchar(ret_buf[i]);
-			}
-		} while(1);
-
-	} return NULL;
+		}
+	} while (written_bytes < strlen(request));
+	do
+	{
+		len = sizeof(ret_buf) - 1;
+		bzero(ret_buf, sizeof(ret_buf));
+		ret = esp_tls_conn_read(tls, (char *)ret_buf, len);
+		
+		if(ret == ESP_TLS_ERR_SSL_WANT_WRITE  || ret == ESP_TLS_ERR_SSL_WANT_READ)
+			continue;
+		
+		if(ret < 0) break;
+		
+		if(ret == 0) break;
+		
+		len = ret;
+		/* Print response directly to stdout as it is read */
+		for(int i = 0; i < len; i++) {
+			putchar(ret_buf[i]);
+		}
+	} while(1);
+	return NULL;
 }
-
+       
 #endif /* concord.h */

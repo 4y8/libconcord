@@ -135,7 +135,7 @@ wifi_init_sta(void)
 }
 
 void
-app_main(void)
+_main(void *pvParameter)
 {
         concord_client_t *bot;
         esp_err_t ret;
@@ -155,4 +155,11 @@ app_main(void)
         bot->message_callback = pong;
         concord_get_channel_messages(atoll(CONFIG_CONCORD_CHANNEL_ID), bot);
         concord_free_client(bot);
+        while (1) vTaskDelay(1000 / portTICK_PERIOD_MS);
+}
+
+void
+app_main(void)
+{
+        xTaskCreate(&_main, "main", 8192, NULL, 5, NULL);
 }
