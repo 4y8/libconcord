@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "esp_tls.h"
+#include "esp_system.h"
+#include "esp_log.h"
 #include "esp_crt_bundle.h"
 
 typedef struct {
@@ -17,8 +19,6 @@ typedef struct {
 		void (*ready_callback)();
 		char *login;
 } concord_client_t;
-
-char *concord_discord_base_url = "https://discord.com";
 
 static void concord_reply(char *, concord_message_t *);
 static void concord_login(concord_client_t *, char *);
@@ -36,13 +36,14 @@ static void
 concord_login(concord_client_t *client, char *token)
 {
 
-	client->login = token;
+	client->login = strdup(token);
 }
 
 static void
 concord_free_client(concord_client_t *client)
 {
 
+	free(client->login);
 	free(client);
 }
 
@@ -61,10 +62,10 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 {
 	char request[512];
 	char url[256];
-	char ret_buf[4096];
+	char ret_buf[512];
 	int ret, len;
 
-	sprintf(url, "https://www.discord.com/apt/v6/channels/%lld/messages",
+	sprintf(url, "https://www.discord.com/api/v6/channels/%lld/messages",
 		channel_id);
 	sprintf(request,
 		"GET %s HTTP/1.0\r\n"
@@ -74,13 +75,17 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		"\r\n",
 		url, client->login);
 	while (1) {
+		char *tag = "ESP";
+		ESP_LOGI(tag, "%s, %s", url, client->login);
 		esp_tls_cfg_t cfg = {
 			.crt_bundle_attach = esp_crt_bundle_attach,
-		}; struct esp_tls *tls = esp_tls_conn_http_new(url, &cfg);
+		}; 
+		struct esp_tls *tls = esp_tls_conn_http_new(strdup(url), &cfg);
+		return NULL;
 		if(!tls) {
-			printf("connection failed");
 			return NULL;
 		} size_t written_bytes = 0;
+
 		do {
 			ret = esp_tls_conn_write(tls,
 						 request + written_bytes,
