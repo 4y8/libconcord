@@ -9,10 +9,19 @@
 #include "esp_crt_bundle.h"
 
 typedef struct {
+	char *name;
+} concord_user_t;
+
+typedef struct {
 	char *content;
-	int id;
-	int channel_id;
+	int   id;
+	int   channel_id;
 } concord_message_t;
+
+typedef struct {
+	concord_message_t *messages;
+	int                length;
+} concord_message_list_t;
 
 typedef struct {
 	void (*message_callback)(concord_message_t *);
@@ -71,7 +80,7 @@ read_char_tls(esp_tls_t *tls)
 	return c;
 }
 
-static concord_message_t *
+static concord_message_list_t *
 concord_get_channel_messages(long long channel_id, concord_client_t *client)
 {
 	char request[512], url[256];
@@ -121,7 +130,12 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		else if (c == '{') ++nbracket;
 		else if (c == '}') --nbracket;
 		if (!nbracket) ncomma = 0;
-		if (ncomma == 2 || ncomma == 5) putchar(c);
+		else if (ncomma == 2 || ncomma == 5) {
+			while (read_char_tls(tls) != ':');
+			while (read_char_tls(tls) == ' ');
+			while ((c = read_char_tls(tls)) != '"') putchar(c);
+			printf("\n");
+		}
 	} printf("\n");
 	esp_tls_conn_delete(tls);
 	return NULL;
