@@ -60,8 +60,8 @@ concord_new_client()
 static concord_message_t *
 concord_get_channel_messages(long long channel_id, concord_client_t *client)
 {
-		char request[512], url[256], ret_buf[512];
-		int ret, len, loop;
+		char request[512], url[256], c;
+		int ret, loop, nbracket, ncomma;
 
 		sprintf(url, "https://www.discord.com/api/v6/channels/%lld/messages",
 				channel_id);
@@ -92,31 +92,35 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		loop = 0;
 		/* Skip the answer's header. */
 		while(loop != 4) {
-				ret = esp_tls_conn_read(tls, (char *)ret_buf, 1);
+				ret = esp_tls_conn_read(tls, &c, 1);
 
-				if(ret == ESP_TLS_ERR_SSL_WANT_WRITE ||
-				   ret == ESP_TLS_ERR_SSL_WANT_READ)
+				if (ret == ESP_TLS_ERR_SSL_WANT_WRITE ||
+					ret == ESP_TLS_ERR_SSL_WANT_READ)
 						continue;
 
-				if(ret <= 0) break;
+				if (ret <= 0) break;
 
-				if (ret_buf[0] == '\r') ++loop;
-				else if (ret_buf[0] == '\n') ++loop;
-				else loop = 0;
+				if      (c == '\r') ++loop;
+				else if (c == '\n') ++loop;
+				else              loop = 0;
 		} /* Receive the answer */
+		nbracket = 0;
+		ncomma   = 0;
+		esp_tls_conn_read(tls, &c, 1);
 		while(1) {
-				bzero(ret_buf, 512);
-				ret = esp_tls_conn_read(tls, (char *)ret_buf, 511);
+				ret = esp_tls_conn_read(tls, &c, 1);
 
-				if(ret == ESP_TLS_ERR_SSL_WANT_WRITE ||
-				   ret == ESP_TLS_ERR_SSL_WANT_READ)
+				if (ret == ESP_TLS_ERR_SSL_WANT_WRITE ||
+					ret == ESP_TLS_ERR_SSL_WANT_READ)
 						continue;
 
-				if(ret <= 0) break;
+				if (ret <= 0) break;
 
-				len = ret;
-				for(int i = 0; i < len; i++)
-						putchar(ret_buf[i]);
+				if (c == ',')      ++ncomma;
+				else if (c == '{') ++nbracket;
+				else if (c == '}') --nbracket;
+				if (!nbracket) ncomma = 0;
+				if (ncomma == 2 || ncomma == 5) putchar(c);
 		} printf("\n");
 		esp_tls_conn_delete(tls);
 		return NULL;
