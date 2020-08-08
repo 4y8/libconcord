@@ -104,9 +104,7 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		if(ret == ESP_TLS_ERR_SSL_WANT_WRITE  || ret == ESP_TLS_ERR_SSL_WANT_READ)
 			continue;
 		
-		if(ret < 0) break;
-		
-		if(ret == 0) break;
+		if(ret <= 0) break;
 		
 		len = ret;
 		/* Print response directly to stdout as it is read */
@@ -114,6 +112,8 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 			putchar(ret_buf[i]);
 		}
 	} while(1);
+	printf("\n");
+	esp_tls_conn_delete(tls);
 	return NULL;
 }
        
