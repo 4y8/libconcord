@@ -155,11 +155,13 @@ _main(void *pvParameter)
         bot->message_callback = pong;
         concord_get_channel_messages(atoll(CONFIG_CONCORD_CHANNEL_ID), bot);
         concord_free_client(bot);
+        vTaskDelete(0);
         while (1) vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
 void
 app_main(void)
 {
+
         xTaskCreate(&_main, "main", 8192, NULL, 5, NULL);
 }
