@@ -141,7 +141,8 @@ _main(void *pvParameter)
         esp_err_t ret;
 
         ret = nvs_flash_init();
-        if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
+	    ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
                 ESP_ERROR_CHECK(nvs_flash_erase());
                 ret = nvs_flash_init();
         }
@@ -153,10 +154,10 @@ _main(void *pvParameter)
         bot = concord_new_client();
         concord_login(bot, CONFIG_CONCORD_TOKEN);
         bot->message_callback = pong;
-        concord_get_channel_messages(atoll(CONFIG_CONCORD_CHANNEL_ID), bot);
+        concord_get_channel_messages(atoll(CONFIG_CONCORD_CHANNEL_ID), 
+	                             bot, NULL, 10);
         concord_free_client(bot);
         vTaskDelete(0);
-        while (1) vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
 void

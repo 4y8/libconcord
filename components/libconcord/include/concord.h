@@ -13,15 +13,11 @@ typedef struct {
 } concord_user_t;
 
 typedef struct {
-	char *content;
-	int   id;
-	int   channel_id;
+	char          *content;
+	int            id;
+	int            channel_id;
+	concord_user_t sender;
 } concord_message_t;
-
-typedef struct {
-	concord_message_t *messages;
-	int                length;
-} concord_message_list_t;
 
 typedef struct {
 	void (*message_callback)(concord_message_t *);
@@ -32,8 +28,12 @@ typedef struct {
 static void concord_reply(char *, concord_message_t *);
 static void concord_login(concord_client_t *, char *);
 static void concord_free_client(concord_client_t *);
-static concord_message_t *concord_get_channel_messages(long long, concord_client_t *);
+static int concord_get_channel_messages(long long, concord_client_t *, 
+                                        concord_message_t *, int);
 static concord_client_t *concord_new_client(void);
+static void concord_free_user(concord_user_t);
+static void concord_free_message(concord_message_t);
+static void concord_free_messages(concord_message_t *, int);
 
 static void
 concord_reply(char *content, concord_message_t *msg)
@@ -80,13 +80,14 @@ read_char_tls(esp_tls_t *tls)
 	return c;
 }
 
-static concord_message_list_t *
-concord_get_channel_messages(long long channel_id, concord_client_t *client)
+int
+concord_get_channel_messages(long long channel_id, concord_client_t *client, 
+                             concord_message_t *msg_buf, int max_messages)
 {
 	char request[512], url[256];
 	int ret, loop, nbracket, ncomma, c;
 
-	sprintf(url, "https://www.discord.com/api/v6/channels/%lld/messages",
+	sprintf(url, "https://www.discord.com/api/v6/channels/%lld/messages?limit=100",
 		channel_id);
 	sprintf(request,
 		"GET %s HTTP/1.0\r\n"
@@ -99,7 +100,7 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		.crt_bundle_attach = esp_crt_bundle_attach,
 	};
 	esp_tls_t *tls = esp_tls_conn_http_new(url, &cfg);
-	if (!tls) return NULL;
+	if (!tls) return -1;
 	size_t written_bytes = 0;
 
 	/* Send the request. */
@@ -109,7 +110,7 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 		if (ret >= 0) written_bytes += ret;
 		else if (ret != ESP_TLS_ERR_SSL_WANT_READ &&
 			 ret != ESP_TLS_ERR_SSL_WANT_WRITE)
-			return NULL;
+			return -1;
 	} while (written_bytes < strlen(request));
 
 	loop = 0;
@@ -124,7 +125,7 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 	ncomma   = 0;
 	esp_tls_conn_read(tls, &c, 1);
 	c = 0;
-	while (c != -1) {
+	while (c != -1 && max_messages) {
 		c = read_char_tls(tls);
 		if (c == ',')      ++ncomma;
 		else if (c == '{') ++nbracket;
@@ -135,10 +136,36 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client)
 			while (read_char_tls(tls) == ' ');
 			while ((c = read_char_tls(tls)) != '"') putchar(c);
 			printf("\n");
+			--max_messages;
 		}
 	} printf("\n");
 	esp_tls_conn_delete(tls);
-	return NULL;
+	return -1;
 }
+
+
+static void 
+concord_free_user(concord_user_t usr)
+{
+
+	free(usr.name);
+}
+
+static void 
+concord_free_message(concord_message_t msg)
+{
+
+	concord_free_user(msg.sender);
+	free(msg.content);
+}
+
+static void concord_free_messages(concord_message_t *msgs, int n)
+{
+	
+	for (--n; n >= 0; --n) concord_free_message(*(msgs + n)); 
+	free(msgs);
+}
+
+
 
 #endif /* concord.h */
