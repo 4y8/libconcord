@@ -35,6 +35,8 @@ static void concord_free_user(concord_user_t);
 static void concord_free_message(concord_message_t);
 static void concord_free_messages(concord_message_t *, int);
 
+char *CONCORD_TAG = "concord";
+
 static void
 concord_reply(char *content, concord_message_t *msg)
 {
@@ -82,13 +84,13 @@ read_char_tls(esp_tls_t *tls)
 
 int
 concord_get_channel_messages(long long channel_id, concord_client_t *client, 
-                             concord_message_t *msg_buf, int max_messages)
+                             concord_message_t *msg_buf, int max_msgs)
 {
 	char request[512], url[256];
-	int ret, loop, nbracket, ncomma, c;
+	int ret, loop, nbracket, ncomma, c, nmsg;
 
-	sprintf(url, "https://www.discord.com/api/v6/channels/%lld/messages?limit=100",
-		channel_id);
+	sprintf(url, "https://www.discord.com/api/v6/channels/%lld/messages?limit=%d",
+		channel_id, max_msgs <= 100 ? max_msgs : 100);
 	sprintf(request,
 		"GET %s HTTP/1.0\r\n"
 		"Host: discord.com\r\n"
@@ -125,22 +127,30 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client,
 	ncomma   = 0;
 	esp_tls_conn_read(tls, &c, 1);
 	c = 0;
-	while (c != -1 && max_messages) {
+	nmsg = 0;
+	while (c != -1 && max_msgs != nmsg) {
 		c = read_char_tls(tls);
 		if (c == ',')      ++ncomma;
 		else if (c == '{') ++nbracket;
 		else if (c == '}') --nbracket;
 		if (!nbracket) ncomma = 0;
 		else if (ncomma == 2 || ncomma == 5) {
+			char *s, *p;
+			p = (s = calloc(256, 1)) - 1;
+			if (!s) ESP_LOGE(CONCORD_TAG, "Unable to allocate memory");
 			while (read_char_tls(tls) != ':');
 			while (read_char_tls(tls) == ' ');
-			while ((c = read_char_tls(tls)) != '"') putchar(c);
-			printf("\n");
-			--max_messages;
+			while ((c = read_char_tls(tls)) != '"') *(++p) = c;
+			if (ncomma == 2) {
+				++nmsg;
+				msg_buf->content = s;
+			} else {
+				msg_buf->sender.name = s;
+				++msg_buf;
+			}
 		}
-	} printf("\n");
-	esp_tls_conn_delete(tls);
-	return -1;
+	} esp_tls_conn_delete(tls);
+	return nmsg;
 }
 
 

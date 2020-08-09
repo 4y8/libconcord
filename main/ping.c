@@ -154,8 +154,10 @@ _main(void *pvParameter)
         bot = concord_new_client();
         concord_login(bot, CONFIG_CONCORD_TOKEN);
         bot->message_callback = pong;
+	concord_message_t *p = malloc(10 * sizeof(concord_message_t));
         concord_get_channel_messages(atoll(CONFIG_CONCORD_CHANNEL_ID), 
-	                             bot, NULL, 10);
+	                             bot, p, 10);
+	puts(p->content);
         concord_free_client(bot);
         vTaskDelete(0);
 }
@@ -164,5 +166,5 @@ void
 app_main(void)
 {
 
-        xTaskCreate(&_main, "main", 8192, NULL, 5, NULL);
+        xTaskCreate(&_main, "main", 2 *8192, NULL, 5, NULL);
 }
