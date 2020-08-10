@@ -1,3 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(concord)
+file(GLOB SOURCES *.c)
+
+idf_component_register(SRCS "${SOURCES}"
+  INCLUDE_DIRS "include"
+  REQUIRES esp-tls)
