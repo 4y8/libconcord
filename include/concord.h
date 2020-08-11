@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "esp_tls.h"
 #include "esp_system.h"
+#include "esp_tls.h"
 #include "esp_log.h"
 #include "esp_crt_bundle.h"
 
@@ -132,7 +132,7 @@ concord_get_channel_messages(long long channel_id, concord_client_t *client,
 		c = read_char_tls(tls);
 		if (c == '{') ++nbracket;
 		else if (c == '}') {
-			if(!(--nbracket)) ncomma = 0;
+			if(!(--nbracket)) ncomma = -1;
 		} else if (c == ',')
 			if (++ncomma == 2 || ncomma == 5) {
 				char *s, *p;
